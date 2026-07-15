@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function PagamentoPendente(){return <main className="payment-page"><section><span className="payment-icon pending">⌛</span><small>PAGAMENTO EM ANÁLISE</small><h1>Estamos aguardando a confirmação.</h1><p>Pagamentos por boleto ou alguns métodos podem levar mais tempo para serem confirmados.</p><div><Link href="/dashboard/planos" className="premium-primary">Ver meus planos</Link><Link href="/" className="outline-button">Voltar ao site</Link></div></section></main>}

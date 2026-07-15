@@ -1,0 +1,30 @@
+PAGINAFACIL — GUIA SIMPLES PARA PUBLICAR
+
+1. PAGAMENTO
+- Entre no painel do Mercado Pago e crie uma aplicação.
+- Copie o Access Token de TESTE primeiro.
+- Clique duas vezes em CONFIGURAR-PAGAMENTO.bat.
+- Cole o token, informe http://localhost:3000 e escolha S para teste.
+- Rode INSTALAR-E-INICIAR.bat e teste os botões em /dashboard/planos.
+
+2. PAGAMENTO REAL
+- No Mercado Pago, ative as credenciais de produção.
+- Execute CONFIGURAR-PAGAMENTO.bat novamente.
+- Cole o Access Token de produção.
+- Informe o domínio final com https://.
+- Escolha N para pagamentos reais.
+
+3. PUBLICAR NA VERCEL
+- Crie uma conta na Vercel e importe este projeto pelo GitHub.
+- Em Settings > Environment Variables, copie todas as linhas do .env.local.
+- Não coloque aspas nos valores.
+- Faça um novo Deploy.
+
+4. WEBHOOK MERCADO PAGO
+- A URL já está no código: https://SEU-DOMINIO/api/mercadopago/webhook
+- No painel da aplicação Mercado Pago, cadastre essa URL para eventos de pagamentos.
+
+IMPORTANTE
+- Nunca publique ou envie o arquivo .env.local para outras pessoas.
+- Primeiro teste com credenciais de teste.
+- Esta versão cobra o acesso de 30 dias em pagamento único. Renovação automática exige uma integração de assinatura recorrente adicional.

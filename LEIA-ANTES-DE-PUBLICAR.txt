@@ -1,0 +1,36 @@
+PÁGINAFÁCIL — VERSÃO CORRIGIDA
+
+1. NÃO MISTURE COM A PASTA ANTIGA
+Extraia este ZIP em uma pasta nova.
+
+2. PARA ABRIR NO COMPUTADOR
+Clique em LIMPAR-E-INICIAR.bat
+
+O projeto usa Webpack para evitar o erro:
+Could not find the module app/dashboard/page.tsx#default in the React Client Manifest
+
+3. PARA PUBLICAR NA VERCEL
+- Envie os arquivos para o GitHub.
+- Importe o repositório na Vercel.
+- Framework: Next.js
+- Build Command: npm run build
+- Depois faça um deploy sem usar o cache antigo.
+
+4. PAGAMENTO MERCADO PAGO
+Na Vercel, abra Settings > Environment Variables e adicione:
+
+MERCADO_PAGO_ACCESS_TOKEN = seu Access Token de produção
+MERCADO_PAGO_SANDBOX = false
+NEXT_PUBLIC_SITE_URL = https://seu-dominio.com.br
+
+Depois faça Redeploy.
+
+5. FIREBASE
+Adicione também as variáveis NEXT_PUBLIC_FIREBASE_* da sua aplicação Firebase.
+Use o arquivo .env.example como modelo.
+
+6. TESTE
+Abra:
+https://seu-dominio.com.br/diagnostico
+
+O Mercado Pago precisa aparecer como Configurado.

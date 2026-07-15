@@ -1,0 +1,9 @@
+"use client";
+import Link from "next/link";
+import { ReactNode, useMemo } from "react";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import LogoutButton from "./LogoutButton";
+const items=[
+["/dashboard","⌂","Visão geral"],["/dashboard/novo-site","✦","Criar com IA"],["/dashboard/sites","▣","Meus sites"],["/dashboard/logos","◈","Logo Studio"],["/dashboard/banners","▤","Banner Studio"],["/dashboard/templates","◇","Templates"],["/dashboard/analytics","↗","Analytics"],["/dashboard/leads","◎","Leads"],["/dashboard/dominios","⌁","Domínios"],["/dashboard/planos","♛","Planos"],["/dashboard/configuracoes","⚙","Configurações"]];
+export default function DashboardShell({children}:{children:ReactNode}){const pathname=usePathname();const{user}=useAuth();const nome=user?.displayName||"Victor";const initials=useMemo(()=>nome.split(" ").filter(Boolean).map(n=>n[0]).slice(0,2).join("").toUpperCase(),[nome]);return <div className="premium-app"><aside className="premium-sidebar"><Link className="premium-logo" href="/"><span>PF</span><div><strong>PáginaFácil</strong><small>AI Studio</small></div></Link><div className="workspace-chip"><span>V</span><div><strong>Meu workspace</strong><small>Plano gratuito</small></div><b>⌄</b></div><nav><p>PLATAFORMA</p>{items.map(([href,icon,label])=><Link key={href} href={href} className={(href==="/dashboard"?pathname===href:pathname.startsWith(href))?"active":""}><i>{icon}</i><span>{label}</span>{label==="Criar com IA"&&<em>NOVO</em>}</Link>)}</nav><div className="upgrade-card"><b>♛</b><strong>Desbloqueie o Premium</strong><small>Sites, logos e banners ilimitados.</small><Link href="/dashboard/planos">Ver planos</Link></div><div className="premium-user"><span>{initials}</span><div><strong>{nome}</strong><small>{user?.email||"minha-conta@paginafacil.com"}</small></div><LogoutButton/></div></aside><main className="premium-main">{children}</main></div>}

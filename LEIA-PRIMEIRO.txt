@@ -1,0 +1,27 @@
+PÁGINAFÁCIL — VERSÃO PREMIUM CORRIGIDA
+
+O que foi corrigido:
+- Home completamente redesenhada com aparência premium.
+- Erro "Service firestore is not available" corrigido.
+- Firebase passou a ser carregado somente quando necessário.
+- Removida a otimização experimental que quebrava os serviços do Firebase.
+- Firebase fixado em versão estável.
+- Compilação de produção testada com sucesso no Next.js 16.2.10.
+
+PARA TESTAR NO COMPUTADOR
+1. Extraia o ZIP em uma pasta nova.
+2. Abra o terminal nessa pasta.
+3. Execute: npm install
+4. Execute: npm run dev
+5. Abra: http://localhost:3000
+
+PARA PUBLICAR NA VERCEL
+- Envie esta pasta para o GitHub.
+- Importe o repositório na Vercel.
+- Framework: Next.js.
+- Build command: npm run build.
+- Depois, cadastre as variáveis do Firebase e Mercado Pago na Vercel.
+
+IMPORTANTE
+Não envie este projeto para public_html como se fosse HTML simples.
+Use Vercel ou uma hospedagem com suporte a Node.js/Next.js.

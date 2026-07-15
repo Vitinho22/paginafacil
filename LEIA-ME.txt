@@ -1,0 +1,37 @@
+PÁGINAFÁCIL — PACOTE CRIADOR DE SITES
+
+Este pacote inclui:
+
+1. /dashboard/novo-site
+   Tela inicial para descrever o projeto e escolher o segmento.
+
+2. /dashboard/assistente
+   Assistente em etapas para coletar nome, cidade, WhatsApp, Instagram e estilo.
+
+3. /dashboard/gerando
+   Tela de progresso que prepara o projeto.
+
+4. /dashboard/editor/[id]
+   Editor visual inicial com título, descrição e cor em tempo real.
+
+INSTALAÇÃO
+
+1. Extraia o ZIP.
+2. Copie a pasta app para a raiz do seu projeto.
+3. Quando o Windows perguntar, escolha mesclar as pastas.
+4. Não apague suas páginas atuais.
+5. Reinicie o Next.js:
+
+Ctrl + C
+rmdir /s /q .next
+npm run dev
+
+TESTE
+
+Abra:
+http://localhost:3000/dashboard/novo-site
+
+OBSERVAÇÃO
+
+Esta versão usa localStorage para levar os dados entre as telas.
+O próximo passo será salvar projetos no Firestore.

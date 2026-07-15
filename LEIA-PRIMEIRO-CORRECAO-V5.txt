@@ -1,0 +1,20 @@
+PÁGINAFÁCIL V5 — CORREÇÕES REAIS
+
+1. O criador de sites agora chama /api/ai/site e não usa apenas textos prontos.
+2. Banner e logo chamam rotas reais da OpenAI.
+3. A área de criação foi alterada para fundo claro, textos escuros e melhor contraste.
+4. Se a API falhar, o sistema mostra o motivo e interrompe a criação; não simula sucesso.
+
+CONFIGURAÇÃO LOCAL
+Execute CONFIGURAR-NOVA-CHAVE.bat e cole uma NOVA chave. A chave enviada no chat deve continuar revogada.
+
+VARIÁVEIS
+OPENAI_API_KEY=sua_nova_chave
+OPENAI_IMAGE_MODEL=gpt-image-1.5
+OPENAI_TEXT_MODEL=gpt-4.1-mini
+
+VERCEL
+Cadastre as três variáveis em Settings > Environment Variables e faça Redeploy.
+
+IMPORTANTE
+A OpenAI API precisa de faturamento/créditos ativos. Modelos GPT Image também podem exigir verificação da organização. O projeto agora mostra esses erros claramente.

@@ -1,0 +1,22 @@
+PAGINAFACIL - CONFIGURACAO SEGURA DA IA
+
+1. Revogue imediatamente a chave que foi enviada no chat.
+2. Crie uma NOVA chave no painel da OpenAI.
+3. Nao envie a nova chave para ninguem.
+4. Clique duas vezes em CONFIGURAR-NOVA-CHAVE.bat.
+5. Cole a nova chave quando a janela pedir.
+6. Depois clique em INICIAR-PAGINAFACIL.bat.
+
+A chave sera salva somente no arquivo .env.local do seu computador.
+O arquivo .gitignore impede que ela seja enviada ao GitHub por engano.
+
+Na Vercel, adicione manualmente:
+Nome: OPENAI_API_KEY
+Valor: sua nova chave
+
+Nome: OPENAI_IMAGE_MODEL
+Valor: gpt-image-1.5
+
+Depois faça um Redeploy.
+
+OPENAI_TEXT_MODEL=gpt-4.1-mini

@@ -1,0 +1,20 @@
+PAGINAFACIL - PUBLICACAO CORRETA
+
+O dominio nunca deve executar: npm run dev
+Esse comando e apenas para desenvolvimento e mostra o aviso "Rendering...".
+
+Na hospedagem/VPS, use nesta ordem:
+1. npm install
+2. npm run build
+3. npm start
+
+Na Vercel:
+- Build Command: npm run build
+- Output: deixe automatico
+- Framework: Next.js
+- Nao altere o comando para npm run dev
+
+Depois de alterar variaveis do Firebase ou Mercado Pago, faca um novo Deploy/Redeploy.
+
+Pagina para verificar configuracoes:
+https://SEU-DOMINIO/diagnostico

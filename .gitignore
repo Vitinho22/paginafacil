@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+.DS_Store
+
+paginafacil/
+paginafacil-premium-work/
+pf_secure/
+.next/
+node_modules/
+.env.local
+tsconfig.tsbuildinfo

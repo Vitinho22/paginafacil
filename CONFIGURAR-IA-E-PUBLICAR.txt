@@ -1,0 +1,46 @@
+PÁGINAFÁCIL — CONFIGURAÇÃO DA IA REAL
+
+1. NO COMPUTADOR
+Abra o arquivo .env.local e acrescente no final:
+
+OPENAI_API_KEY=COLE_SUA_CHAVE_SECRETA_AQUI
+OPENAI_IMAGE_MODEL=gpt-image-1.5
+
+Não coloque aspas e não use NEXT_PUBLIC_ na chave.
+
+2. TESTAR
+Na pasta do projeto, execute:
+
+npm install
+npm run dev
+
+Abra http://localhost:3000/api/ai/status
+O resultado deve ser: {"configured":true}
+
+Depois teste:
+- /dashboard/banners: envie uma imagem, escreva a ideia e clique em gerar com IA.
+- /dashboard/logos: informe nome e segmento e clique em gerar símbolo com IA.
+
+3. PUBLICAR NA VERCEL
+No projeto da Vercel, abra Settings > Environment Variables e crie:
+
+OPENAI_API_KEY = sua chave secreta
+OPENAI_IMAGE_MODEL = gpt-image-1.5
+
+Marque Production, Preview e Development. Salve e faça um novo Redeploy.
+
+4. IMPORTANTE
+A chave nunca deve ser enviada pelo chat, colocada no GitHub ou escrita em arquivos públicos.
+A geração depende de a conta da API possuir faturamento ou créditos disponíveis.
+
+5. O QUE ESTÁ FUNCIONAL
+- Upload real de JPG, PNG e WEBP para banners.
+- Edição da imagem enviada pela API de IA.
+- Montagem do banner com texto editável.
+- Exportação em PNG para Instagram, Stories, Pinterest e YouTube.
+- Geração real de símbolo de logo pela API.
+- Upload de símbolo próprio.
+- Nome e slogan renderizados corretamente pelo editor.
+- Download do logo em PNG transparente.
+
+OPENAI_TEXT_MODEL=gpt-4.1-mini

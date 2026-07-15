@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function PagamentoFalha(){return <main className="payment-page"><section><span className="payment-icon failure">!</span><small>PAGAMENTO NÃO CONCLUÍDO</small><h1>A compra não foi finalizada.</h1><p>Você pode tentar novamente ou escolher outro meio de pagamento no Mercado Pago.</p><div><Link href="/dashboard/planos" className="premium-primary">Tentar novamente</Link><Link href="/" className="outline-button">Voltar ao site</Link></div></section></main>}

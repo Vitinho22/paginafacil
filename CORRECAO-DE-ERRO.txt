@@ -1,0 +1,24 @@
+PÁGINAFÁCIL — CORREÇÃO DA TELA "THIS PAGE COULDN'T LOAD"
+
+O que foi corrigido:
+1. Firebase Auth e Firestore foram separados em arquivos diferentes.
+2. O Firestore não é mais carregado na página inicial nem no login.
+3. A inicialização do Firebase agora é protegida contra falhas.
+4. Firestore usa detecção automática de long polling para maior compatibilidade.
+5. Foi adicionada uma tela própria de recuperação de erro.
+6. Firebase foi fixado na versão estável 10.14.1.
+7. O projeto foi testado com npm run build e compilou 27 páginas.
+
+PUBLICAÇÃO NA VERCEL
+- Substitua todos os arquivos do repositório pelos arquivos desta pasta.
+- Faça commit e push.
+- Na Vercel, abra Deployments.
+- Clique nos três pontos do último deployment.
+- Escolha Redeploy.
+- Desmarque "Use existing Build Cache" para não reutilizar a versão quebrada.
+
+Depois, abra:
+https://seu-dominio.com/diagnostico
+
+IMPORTANTE
+Não misture estes arquivos com a pasta antiga. Substitua o projeto inteiro.

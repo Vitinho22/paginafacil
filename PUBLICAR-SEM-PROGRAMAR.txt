@@ -1,0 +1,63 @@
+PÁGINAFÁCIL — PUBLICAR SEM PROGRAMAR (VERCEL)
+
+IMPORTANTE
+Este projeto NÃO funciona enviando os arquivos para public_html de uma hospedagem HTML comum.
+Ele precisa ser publicado na Vercel porque usa Next.js, Firebase e rotas de pagamento.
+
+1) CRIE UM REPOSITÓRIO NO GITHUB
+- Entre em github.com e crie um repositório chamado paginafacil.
+- Envie TODOS os arquivos desta pasta diretamente para o repositório.
+- O arquivo package.json precisa aparecer na primeira tela do repositório, e não dentro de outra pasta.
+
+2) IMPORTE NA VERCEL
+- Entre em vercel.com.
+- Clique em Add New > Project.
+- Escolha o repositório paginafacil.
+- Framework Preset: Next.js.
+- Root Directory: deixe em branco.
+- Clique em Deploy.
+
+3) CONFIGURE AS VARIÁVEIS
+Na Vercel, abra o projeto e entre em Settings > Environment Variables.
+Adicione uma por uma as variáveis do arquivo .env.example.
+Use os valores reais do Firebase e do Mercado Pago.
+
+Variáveis obrigatórias para login e projetos:
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+
+Variáveis obrigatórias para pagamento:
+MERCADO_PAGO_ACCESS_TOKEN
+MERCADO_PAGO_SANDBOX
+
+Para testes, MERCADO_PAGO_SANDBOX deve ser true.
+Para pagamentos reais, deve ser false.
+
+A variável NEXT_PUBLIC_SITE_URL é opcional. O sistema reconhece o domínio automaticamente.
+
+4) FAÇA NOVO DEPLOY
+- Depois de salvar as variáveis, abra Deployments.
+- No último deploy, clique nos três pontos e depois em Redeploy.
+
+5) CONECTE O DOMÍNIO
+- Na Vercel, abra Settings > Domains.
+- Digite seu domínio.
+- A Vercel mostrará exatamente os registros DNS que devem ser colocados no painel onde o domínio foi comprado.
+- Remova registros antigos que apontem o mesmo domínio para outra hospedagem.
+
+6) TESTE
+Abra:
+https://SEU-DOMINIO/diagnostico
+
+Os três itens devem aparecer como Configurado.
+
+7) WEBHOOK DO MERCADO PAGO
+Cadastre no Mercado Pago:
+https://SEU-DOMINIO/api/mercadopago/webhook
+
+ATENÇÃO
+Nunca envie o Access Token em mensagens públicas ou coloque-o em código visível.
