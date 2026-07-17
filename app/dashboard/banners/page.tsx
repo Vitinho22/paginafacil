@@ -1,9 +1,11 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 type FormatName = "Instagram" | "Stories" | "Pinterest" | "YouTube";
 type StyleName = "Luxo" | "Minimalista" | "Moderno" | "Impactante";
+type GenerationMode = "ai" | "upload";
 
 type BannerFormat = {
   width: number;
@@ -74,6 +76,11 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 }
 
 export default function BannersPage() {
+  const { user } = useAuth();
+  const [credits, setCredits] = useState<number | null>(null);
+  const [creditsError, setCreditsError] = useState("");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("ai");
+  const [showText, setShowText] = useState(false);
   const [format, setFormat] = useState<FormatName>("Instagram");
   const [style, setStyle] = useState<StyleName>("Luxo");
   const [title, setTitle] = useState("Transforme sua cozinha");
@@ -108,6 +115,82 @@ export default function BannersPage() {
     };
   }, [sourceImage]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCredits() {
+      if (!user) {
+        if (!cancelled) {
+          setCredits(null);
+          setCreditsError("");
+        }
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+
+        const response = await fetch("/api/credits", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        const responseText = await response.text();
+
+        if (!responseText.trim()) {
+          throw new Error(
+            `A API de créditos respondeu vazia. Status ${response.status}.`
+          );
+        }
+
+        let data: {
+          credits?: number;
+          error?: string;
+        };
+
+        try {
+          data = JSON.parse(responseText) as {
+            credits?: number;
+            error?: string;
+          };
+        } catch {
+          throw new Error(
+            `A API de créditos respondeu em formato inválido. Status ${response.status}.`
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Não foi possível carregar os créditos."
+          );
+        }
+
+        if (!cancelled) {
+          setCredits(Number(data.credits ?? 0));
+          setCreditsError("");
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setCredits(null);
+          setCreditsError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Erro ao carregar créditos."
+          );
+        }
+      }
+    }
+
+    loadCredits();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0];
     event.target.value = "";
@@ -138,33 +221,102 @@ export default function BannersPage() {
   async function generateWithAI() {
     setError("");
     setSuccess("");
-    if (!file) {
-      setError("Primeiro envie a imagem principal.");
-      inputRef.current?.click();
+
+    if (!user) {
+      setError("Entre na sua conta para gerar imagens.");
       return;
     }
+
     if (idea.trim().length < 8) {
       setError("Descreva melhor o visual que deseja criar.");
       return;
     }
 
+    if (generationMode === "upload" && !file) {
+      setError("Envie uma imagem para usar o modo de melhoria.");
+      inputRef.current?.click();
+      return;
+    }
+
+    if (credits !== null && credits < 1) {
+      setError("Você não possui créditos suficientes para gerar esta imagem.");
+      return;
+    }
+
     setLoading(true);
+
     try {
+      const token = await user.getIdToken();
       const body = new FormData();
-      body.append("image", file);
+
+      body.append("mode", generationMode);
       body.append("idea", idea);
       body.append("style", style);
       body.append("format", format);
+      body.append("width", String(selectedFormat.width));
+      body.append("height", String(selectedFormat.height));
 
-      const response = await fetch("/api/ai/banner", { method: "POST", body });
-      const payload = (await response.json()) as { imageUrl?: string; error?: string };
-      if (!response.ok || !payload.imageUrl) {
-        throw new Error(payload.error || "Não foi possível gerar o banner.");
+      if (generationMode === "upload" && file) {
+        body.append("image", file);
       }
+
+      const response = await fetch("/api/ai/banner", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body,
+      });
+
+      const responseText = await response.text();
+
+      if (!responseText.trim()) {
+        throw new Error(
+          `A API de banners respondeu vazia. Status ${response.status}.`
+        );
+      }
+
+      let payload: {
+        imageUrl?: string;
+        remainingCredits?: number;
+        error?: string;
+      };
+
+      try {
+        payload = JSON.parse(responseText) as {
+          imageUrl?: string;
+          remainingCredits?: number;
+          error?: string;
+        };
+      } catch {
+        throw new Error(
+          `A API de banners respondeu em formato inválido. Status ${response.status}.`
+        );
+      }
+
+      if (!response.ok || !payload.imageUrl) {
+        throw new Error(
+          payload.error || "Não foi possível gerar a imagem."
+        );
+      }
+
       setResultImage(payload.imageUrl);
-      setSuccess("Banner gerado com sucesso. Revise os textos e faça o download.");
+
+      if (typeof payload.remainingCredits === "number") {
+        setCredits(payload.remainingCredits);
+      }
+
+      setSuccess(
+        generationMode === "ai"
+          ? "Imagem criada com IA. 1 crédito foi utilizado."
+          : "Imagem melhorada com sucesso. 1 crédito foi utilizado."
+      );
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Erro ao gerar o banner.");
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Erro ao gerar a imagem."
+      );
     } finally {
       setLoading(false);
     }
@@ -189,6 +341,8 @@ export default function BannersPage() {
       const drawHeight = image.height * scale;
       ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
     }
+
+    if (!showText) return canvas;
 
     const horizontal = width > height;
     const gradient = horizontal
@@ -284,7 +438,10 @@ export default function BannersPage() {
           </div>
         </div>
         <div className="header-actions">
-          <div className="credit-pill"><span>ϟ</span> Créditos: 1.250</div>
+          <div className="credit-pill">
+            <span>ϟ</span>
+            Créditos: {credits === null ? "..." : credits}
+          </div>
           <button className="icon-button" aria-label="Notificações">♧<i /></button>
           <button className="new-project" onClick={() => inputRef.current?.click()}>＋ Novo projeto</button>
         </div>
@@ -293,23 +450,95 @@ export default function BannersPage() {
       <div className="workspace">
         <aside className="controls-panel">
           <section className="control-section">
-            <h2>1. Imagem principal</h2>
-            <input ref={inputRef} className="hidden-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} />
-            <button className={`upload-card ${sourceImage ? "has-image" : ""}`} onClick={() => inputRef.current?.click()} type="button">
-              {sourceImage ? (
-                <>
-                  <img src={sourceImage} alt="Imagem principal" />
-                  <span className="edit-image">✎</span>
-                  <div className="file-meta">
-                    <span>{file?.name || "imagem-banner.png"}</span>
-                    <small>{file ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : "Imagem carregada"}</small>
-                  </div>
-                </>
-              ) : (
-                <span className="upload-empty"><b>＋</b>Enviar foto<small>PNG, JPG ou WEBP · até 15 MB</small></span>
-              )}
-            </button>
-            {sourceImage && <button className="remove-image" onClick={() => { setFile(null); setSourceImage(""); setResultImage(""); }}>Remover</button>}
+            <h2>1. Como deseja criar?</h2>
+
+            <div className="creation-mode">
+              <button
+                type="button"
+                className={generationMode === "ai" ? "active" : ""}
+                onClick={() => {
+                  setGenerationMode("ai");
+                  setResultImage("");
+                  setError("");
+                  setSuccess("");
+                }}
+              >
+                <span>✦</span>
+                <div>
+                  <b>Criar do zero com IA</b>
+                  <small>Não exige imagem</small>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={generationMode === "upload" ? "active" : ""}
+                onClick={() => {
+                  setGenerationMode("upload");
+                  setResultImage("");
+                  setError("");
+                  setSuccess("");
+                }}
+              >
+                <span>＋</span>
+                <div>
+                  <b>Melhorar minha imagem</b>
+                  <small>Use sua própria foto</small>
+                </div>
+              </button>
+            </div>
+
+            {generationMode === "upload" && (
+              <>
+                <input
+                  ref={inputRef}
+                  className="hidden-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleFile}
+                />
+
+                <button
+                  className={`upload-card ${sourceImage ? "has-image" : ""}`}
+                  onClick={() => inputRef.current?.click()}
+                  type="button"
+                >
+                  {sourceImage ? (
+                    <>
+                      <img src={sourceImage} alt="Imagem principal" />
+                      <span className="edit-image">✎</span>
+                      <div className="file-meta">
+                        <span>{file?.name || "imagem-banner.png"}</span>
+                        <small>
+                          {file
+                            ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
+                            : "Imagem carregada"}
+                        </small>
+                      </div>
+                    </>
+                  ) : (
+                    <span className="upload-empty">
+                      <b>＋</b>
+                      Enviar foto
+                      <small>PNG, JPG ou WEBP · até 15 MB</small>
+                    </span>
+                  )}
+                </button>
+
+                {sourceImage && (
+                  <button
+                    className="remove-image"
+                    onClick={() => {
+                      setFile(null);
+                      setSourceImage("");
+                      setResultImage("");
+                    }}
+                  >
+                    Remover
+                  </button>
+                )}
+              </>
+            )}
           </section>
 
           <section className="control-section">
@@ -342,19 +571,51 @@ export default function BannersPage() {
           </section>
 
           <section className="control-section">
-            <h2>5. Textos do banner</h2>
-            <label>Título principal</label>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} />
-            <label>Subtítulo</label>
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
-            <label>Chamada para ação</label>
-            <input value={cta} onChange={(event) => setCta(event.target.value)} />
+            <h2>5. Textos opcionais</h2>
+
+            <label className="text-switch">
+              <input
+                type="checkbox"
+                checked={showText}
+                onChange={(event) => setShowText(event.target.checked)}
+              />
+              <span>
+                <b>Adicionar textos sobre a imagem</b>
+                <small>Desmarcado: o PNG será baixado apenas com a imagem.</small>
+              </span>
+            </label>
+
+            {showText && (
+              <>
+                <label>Título principal</label>
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+
+                <label>Subtítulo</label>
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+
+                <label>Chamada para ação</label>
+                <input
+                  value={cta}
+                  onChange={(event) => setCta(event.target.value)}
+                />
+              </>
+            )}
           </section>
 
           <button className="generate-button" type="button" onClick={generateWithAI} disabled={loading}>
-            <span>✦</span>{loading ? "Gerando seu banner..." : "Gerar Banner com IA"}
+            <span>✦</span>{loading ? "Gerando imagem..." : generationMode === "ai" ? "Criar imagem com IA" : "Melhorar imagem com IA"}
           </button>
-          <p className="credits-note">◉ Gerações restantes: 1.250 créditos</p>
+          <p className="credits-note">
+            {creditsError
+              ? "Não foi possível carregar os créditos."
+              : `◉ Créditos disponíveis: ${credits === null ? "..." : credits}`}
+          </p>
           {error && <div className="message error">{error}</div>}
           {success && <div className="message success">{success}</div>}
         </aside>
@@ -372,28 +633,40 @@ export default function BannersPage() {
           <div className="preview-stage">
             <article className={`live-banner style-${style.toLowerCase()}`} style={{ aspectRatio: previewRatio, backgroundImage: activeImage ? `url(${activeImage})` : undefined, "--accent": accent } as React.CSSProperties}>
               {!activeImage ? (
-                <div className="empty-preview"><span>▧</span><b>Envie uma imagem</b><small>A prévia do seu banner aparecerá aqui.</small></div>
+                <div className="empty-preview">
+                  <span>✦</span>
+                  <b>
+                    {generationMode === "ai"
+                      ? "Descreva sua ideia e gere a imagem"
+                      : "Envie uma imagem para começar"}
+                  </b>
+                  <small>
+                    {generationMode === "ai"
+                      ? "A IA criará a imagem do zero."
+                      : "A IA poderá melhorar sua foto."}
+                  </small>
+                </div>
               ) : (
-                <>
-                  <div className="dark-overlay" />
-                  <div className="ai-label">✦ GERADO POR IA</div>
-                  <div className="banner-copy">
-                    <h2>{title || "Seu título"}</h2>
-                    <div className="gold-line" />
-                    <p>{description}</p>
-                    <ul>
-                      <li><span>◇</span><div><b>DESIGN EXCLUSIVO</b><small>Sofisticação em cada detalhe</small></div></li>
-                      <li><span>▣</span><div><b>100% PLANEJADO</b><small>Aproveitamento inteligente de cada espaço</small></div></li>
-                      <li><span>♢</span><div><b>MATERIAIS PREMIUM</b><small>Qualidade que você vê e sente</small></div></li>
-                    </ul>
-                    <button type="button">◉&nbsp; {(cta || "SAIBA MAIS").toUpperCase()} <span>›</span></button>
-                  </div>
-                </>
+                showText && (
+                  <>
+                    <div className="dark-overlay" />
+                    <div className="banner-copy">
+                      <h2>{title || "Seu título"}</h2>
+                      <div className="gold-line" />
+                      <p>{description}</p>
+                      {cta.trim() && (
+                        <button type="button">
+                          {(cta || "SAIBA MAIS").toUpperCase()} <span>›</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )
               )}
             </article>
           </div>
 
-          <div className="tip-box">▱ <span>Dica: Experimente diferentes estilos e descrições para obter resultados ainda melhores!</span></div>
+          <div className="tip-box">▱ <span>A imagem é gerada sem letras. Os textos são opcionais.</span></div>
         </section>
       </div>
       <canvas ref={canvasRef} hidden />
@@ -421,6 +694,18 @@ export default function BannersPage() {
         .control-section { position: relative; margin-bottom: 21px; }
         .control-section h2 { margin: 0 0 12px; font-size: 13px; font-weight: 850; }
         .control-section label { display: block; margin: 12px 0 6px; font-size: 11px; font-weight: 750; color: #344054; }
+        .creation-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 12px; }
+        .creation-mode button { min-height: 78px; display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 11px; background: white; text-align: left; cursor: pointer; }
+        .creation-mode button.active { border-color: #7657ff; background: #f8f6ff; box-shadow: 0 0 0 2px rgba(118,87,255,.08); }
+        .creation-mode button > span { color: #7657ff; font-size: 20px; font-weight: 900; }
+        .creation-mode b, .creation-mode small { display: block; }
+        .creation-mode b { color: #344054; font-size: 11px; }
+        .creation-mode small { margin-top: 4px; color: #98a2b3; font-size: 10px; }
+        .text-switch { display: flex !important; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fafbff; }
+        .text-switch input { width: 17px !important; height: 17px !important; margin: 1px 0 0; accent-color: #7657ff; }
+        .text-switch b, .text-switch small { display: block; }
+        .text-switch b { color: #344054; font-size: 11px; }
+        .text-switch small { margin-top: 4px; color: #98a2b3; font-size: 10px; line-height: 1.4; }
         .hidden-input { display: none; }
         .upload-card { width: 100%; min-height: 118px; padding: 10px; border: 1.5px dashed #cfc4ff; border-radius: 13px; background: #fbfaff; cursor: pointer; overflow: hidden; position: relative; text-align: left; }
         .upload-card.has-image { min-height: 170px; padding: 0; border-style: solid; }
@@ -521,6 +806,7 @@ export default function BannersPage() {
           .banner-copy ul { display: none; }
           .gold-line { margin: 12px 0; }
           .banner-copy > button { margin-top: 17px; border-radius: 8px; }
+          .creation-mode { grid-template-columns: 1fr; }
           .style-grid { grid-template-columns: repeat(2,1fr); }
         }
       `}</style>

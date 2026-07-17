@@ -27,6 +27,12 @@ import {
 } from "lucide-react";
 type FormatName = "Instagram" | "Stories" | "Pinterest" | "YouTube";
 type StyleName = "luxury" | "minimalist" | "modern" | "bold";
+type GenerationMode = "ai" | "upload";
+
+type BannerApiResponse = {
+  imageUrl?: string;
+  error?: string;
+};
 
 type FormatConfig = {
   title: string;
@@ -134,11 +140,15 @@ function formatPreviewStyle(format: FormatConfig): CSSProperties {
 }
 
 export default function BannerStudio() {
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("ai");
+  const [showText, setShowText] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [success, setSuccess] = useState("");
   const [format, setFormat] = useState<FormatName>("Instagram");
   const [style, setStyle] = useState<StyleName>("luxury");
   const [objective, setObjective] = useState(OBJECTIVES[0]);
   const [idea, setIdea] = useState(
-    "Cozinha planejada sofisticada, elegante, iluminação quente, transmitir exclusividade e qualidade premium."
+    "Cozinha planejada sofisticada, elegante, iluminação quente, fotografia publicitária premium, sem textos, sem logotipos e sem marcas d’água."
   );
   const [title, setTitle] = useState("Transforme sua cozinha");
   const [subtitle, setSubtitle] = useState(
@@ -170,9 +180,13 @@ export default function BannerStudio() {
   function resetProject() {
     setResultImage("");
     setSourceImage("");
+    setSelectedFile(null);
     setFileName("");
     setFileSize("");
+    setGenerationMode("ai");
+    setShowText(false);
     setError("");
+    setSuccess("");
     setTitle("Transforme sua cozinha");
     setSubtitle(
       "Projetos planejados com design exclusivo, funcionalidade e acabamento premium."
@@ -205,6 +219,7 @@ export default function BannerStudio() {
       URL.revokeObjectURL(sourceImage);
     }
 
+    setSelectedFile(selected);
     setSourceImage(URL.createObjectURL(selected));
     setResultImage("");
     setFileName(selected.name);
@@ -214,26 +229,60 @@ export default function BannerStudio() {
 
   async function generateWithAI() {
     setError("");
+    setSuccess("");
 
-    if (!sourceImage) {
+    if (idea.trim().length < 8) {
+      setError("Descreva melhor o banner que deseja criar.");
+      return;
+    }
+
+    if (generationMode === "upload" && !selectedFile) {
+      setError("Envie uma imagem para usar o modo de melhoria.");
       fileRef.current?.click();
-      setError("Envie uma imagem principal antes de gerar.");
       return;
     }
 
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      const body = new FormData();
+      body.append("mode", generationMode);
+      body.append("idea", idea.trim());
+      body.append("objective", objective);
+      body.append("format", format);
+      body.append("style", style);
+      body.append("width", String(selectedFormat.width));
+      body.append("height", String(selectedFormat.height));
 
-      /*
-        Integração real:
-        substitua a simulação acima pelo seu fetch para /api/ai/banner.
-        Ao receber a imagem gerada, use:
-        setResultImage(payload.imageUrl);
-      */
+      if (generationMode === "upload" && selectedFile) {
+        body.append("image", selectedFile);
+      }
 
-      setResultImage(sourceImage);
+      const response = await fetch("/api/ai/banner", {
+        method: "POST",
+        body,
+      });
+
+      const payload = (await response.json()) as BannerApiResponse;
+
+      if (!response.ok || !payload.imageUrl) {
+        throw new Error(
+          payload.error || "Não foi possível gerar a imagem do banner."
+        );
+      }
+
+      setResultImage(payload.imageUrl);
+      setSuccess(
+        generationMode === "ai"
+          ? "Imagem criada com IA. Você pode baixar limpa ou ativar os textos."
+          : "Imagem melhorada com IA. Revise e faça o download."
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Erro ao gerar o banner."
+      );
     } finally {
       setLoading(false);
     }
@@ -262,6 +311,10 @@ export default function BannerStudio() {
     const y = (height - drawHeight) / 2;
 
     ctx.drawImage(image, x, y, drawWidth, drawHeight);
+
+    if (!showText) {
+      return canvas;
+    }
 
     const dark = ctx.createLinearGradient(0, 0, width * 0.78, 0);
     dark.addColorStop(0, "rgba(4, 5, 7, .97)");
@@ -385,52 +438,93 @@ export default function BannerStudio() {
       <main className="studio-shell">
         <section className="settings-card">
           <div className="section-block">
-            <h2><span>1.</span> Imagem principal</h2>
+            <h2><span>1.</span> Como deseja criar?</h2>
 
-            <input
-              ref={fileRef}
-              className="hidden-input"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={handleFile}
-            />
-
-            <button
-              type="button"
-              className={`upload-card ${sourceImage ? "has-image" : ""}`}
-              onClick={() => fileRef.current?.click()}
-            >
-              {sourceImage ? (
-                <>
-                  <img src={sourceImage} alt="Imagem selecionada" />
-                  <span className="edit-image"><Pencil size={15} /></span>
-                  <span className="file-details">
-                    <strong>{fileName}</strong>
-                    <small>{fileSize}</small>
-                  </span>
-                </>
-              ) : (
-                <span className="empty-upload">
-                  <Upload size={28} />
-                  <strong>Enviar imagem</strong>
-                  <small>PNG, JPG ou WEBP · até 15 MB</small>
-                </span>
-              )}
-            </button>
-
-            {sourceImage && (
+            <div className="generation-mode">
               <button
                 type="button"
-                className="remove-button"
+                className={generationMode === "ai" ? "selected" : ""}
                 onClick={() => {
-                  setSourceImage("");
+                  setGenerationMode("ai");
                   setResultImage("");
-                  setFileName("");
-                  setFileSize("");
+                  setError("");
+                  setSuccess("");
                 }}
               >
-                Remover
+                <Sparkles size={19} />
+                <span>
+                  <strong>Criar do zero com IA</strong>
+                  <small>Não exige imagem</small>
+                </span>
               </button>
+
+              <button
+                type="button"
+                className={generationMode === "upload" ? "selected" : ""}
+                onClick={() => {
+                  setGenerationMode("upload");
+                  setResultImage("");
+                  setError("");
+                  setSuccess("");
+                }}
+              >
+                <Upload size={19} />
+                <span>
+                  <strong>Melhorar minha imagem</strong>
+                  <small>Use sua própria foto</small>
+                </span>
+              </button>
+            </div>
+
+            {generationMode === "upload" && (
+              <div className="upload-area">
+                <input
+                  ref={fileRef}
+                  className="hidden-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleFile}
+                />
+
+                <button
+                  type="button"
+                  className={`upload-card ${sourceImage ? "has-image" : ""}`}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {sourceImage ? (
+                    <>
+                      <img src={sourceImage} alt="Imagem selecionada" />
+                      <span className="edit-image"><Pencil size={15} /></span>
+                      <span className="file-details">
+                        <strong>{fileName}</strong>
+                        <small>{fileSize}</small>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="empty-upload">
+                      <Upload size={28} />
+                      <strong>Enviar imagem</strong>
+                      <small>PNG, JPG ou WEBP · até 15 MB</small>
+                    </span>
+                  )}
+                </button>
+
+                {sourceImage && (
+                  <button
+                    type="button"
+                    className="remove-button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setSourceImage("");
+                      setResultImage("");
+                      setFileName("");
+                      setFileSize("");
+                    }}
+                  >
+                    Remover imagem
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -505,34 +599,51 @@ export default function BannerStudio() {
           </div>
 
           <div className="section-block">
-            <h2><span>5.</span> Textos do banner</h2>
+            <h2><span>5.</span> Textos opcionais</h2>
 
-            <label className="field">
-              <span>Título principal</span>
+            <label className="text-toggle">
               <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
+                type="checkbox"
+                checked={showText}
+                onChange={(event) => setShowText(event.target.checked)}
               />
+              <span>
+                <strong>Adicionar textos sobre a imagem</strong>
+                <small>Desmarcado: o PNG sai somente com a imagem criada pela IA.</small>
+              </span>
             </label>
 
-            <label className="field">
-              <span>Subtítulo</span>
-              <textarea
-                value={subtitle}
-                onChange={(event) => setSubtitle(event.target.value)}
-              />
-            </label>
+            {showText && (
+              <div className="text-fields">
+                <label className="field">
+                  <span>Título principal</span>
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                  />
+                </label>
 
-            <label className="field">
-              <span>Chamada para ação</span>
-              <input
-                value={cta}
-                onChange={(event) => setCta(event.target.value)}
-              />
-            </label>
+                <label className="field">
+                  <span>Subtítulo</span>
+                  <textarea
+                    value={subtitle}
+                    onChange={(event) => setSubtitle(event.target.value)}
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Chamada para ação</span>
+                  <input
+                    value={cta}
+                    onChange={(event) => setCta(event.target.value)}
+                  />
+                </label>
+              </div>
+            )}
           </div>
 
           {error && <div className="error-box">{error}</div>}
+          {success && <div className="success-box">{success}</div>}
 
           <button
             type="button"
@@ -541,7 +652,11 @@ export default function BannerStudio() {
             disabled={loading}
           >
             {loading ? <RefreshCw size={18} className="spin" /> : <Sparkles size={18} />}
-            {loading ? "Gerando banner..." : "Gerar Banner com IA"}
+            {loading
+              ? "Gerando imagem..."
+              : generationMode === "ai"
+              ? "Criar imagem com IA"
+              : "Melhorar imagem com IA"}
           </button>
 
           <p className="credit-note">ⓘ Gerações restantes: 1.250 créditos</p>
@@ -582,56 +697,34 @@ export default function BannerStudio() {
               ) : (
                 <div className="preview-placeholder">
                   <ImageIcon size={44} />
-                  <strong>Envie uma imagem</strong>
-                  <span>A prévia aparecerá aqui</span>
+                  <strong>
+                    {generationMode === "ai"
+                      ? "Descreva sua ideia e gere a imagem"
+                      : "Envie uma imagem para começar"}
+                  </strong>
+                  <span>
+                    {generationMode === "ai"
+                      ? "A inteligência artificial criará a arte do zero."
+                      : "A IA poderá melhorar e transformar sua foto."}
+                  </span>
                 </div>
               )}
 
-              {activeImage && (
+              {activeImage && showText && (
                 <>
                   <div className="preview-overlay" />
 
-                  <div className="ai-badge">
-                    <Sparkles size={14} />
-                    GERADO POR IA
-                  </div>
-
                   <div className="banner-content">
-                    <h2>{title}</h2>
+                    <h2>{title || "Seu título"}</h2>
                     <div className="gold-line" />
                     <p>{subtitle}</p>
 
-                    <div className="benefit-list">
-                      <div>
-                        <WandSparkles size={30} />
-                        <span>
-                          <strong>DESIGN EXCLUSIVO</strong>
-                          <small>Sofisticação em cada detalhe</small>
-                        </span>
-                      </div>
-
-                      <div>
-                        <LayoutGrid size={30} />
-                        <span>
-                          <strong>100% PLANEJADO</strong>
-                          <small>Aproveitamento inteligente de cada espaço</small>
-                        </span>
-                      </div>
-
-                      <div>
-                        <Sparkles size={30} />
-                        <span>
-                          <strong>MATERIAIS PREMIUM</strong>
-                          <small>Qualidade que você vê e sente</small>
-                        </span>
-                      </div>
-                    </div>
-
-                    <button className="banner-cta" type="button">
-                      <span>◉</span>
-                      {cta}
-                      <span>›</span>
-                    </button>
+                    {cta.trim() && (
+                      <button className="banner-cta" type="button">
+                        {cta}
+                        <span>›</span>
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -640,7 +733,7 @@ export default function BannerStudio() {
 
           <div className="preview-tip">
             <Sparkles size={16} />
-            Dica: Experimente diferentes estilos e descrições para obter resultados ainda melhores!
+            A IA gera a imagem sem letras. Os textos são opcionais e podem ser ativados depois.
           </div>
         </section>
       </main>
@@ -904,6 +997,102 @@ export default function BannerStudio() {
           font-size: 11px;
           font-weight: 800;
           float: right;
+        }
+
+        .generation-mode {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .generation-mode button {
+          min-height: 82px;
+          padding: 13px;
+          border: 1px solid #e2e5ee;
+          border-radius: 13px;
+          background: #ffffff;
+          color: #707789;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          text-align: left;
+          transition: 0.2s ease;
+        }
+
+        .generation-mode button.selected {
+          border-color: #7d5cf7;
+          background: #f7f4ff;
+          color: #6845df;
+          box-shadow: inset 0 0 0 1px rgba(125, 92, 247, 0.1);
+        }
+
+        .generation-mode button strong,
+        .generation-mode button small {
+          display: block;
+        }
+
+        .generation-mode button strong {
+          color: #252a38;
+          font-size: 12px;
+        }
+
+        .generation-mode button small {
+          margin-top: 4px;
+          color: #9096a5;
+          font-size: 10px;
+        }
+
+        .upload-area {
+          margin-top: 12px;
+        }
+
+        .text-toggle {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid #e4e7ef;
+          border-radius: 11px;
+          background: #fafbfe;
+        }
+
+        .text-toggle input {
+          width: 17px;
+          min-height: 17px;
+          margin: 2px 0 0;
+          accent-color: #7350f3;
+        }
+
+        .text-toggle strong,
+        .text-toggle small {
+          display: block;
+        }
+
+        .text-toggle strong {
+          color: #2f3442;
+          font-size: 12px;
+        }
+
+        .text-toggle small {
+          margin-top: 4px;
+          color: #8d93a2;
+          font-size: 10px;
+          line-height: 1.4;
+        }
+
+        .text-fields {
+          margin-top: 12px;
+        }
+
+        .success-box {
+          margin: -8px 0 14px;
+          border: 1px solid #a9e6cf;
+          background: #f0fff8;
+          color: #16764e;
+          border-radius: 9px;
+          padding: 10px;
+          font-size: 11px;
+          line-height: 1.45;
         }
 
         .option-grid {
@@ -1416,6 +1605,10 @@ export default function BannerStudio() {
             padding: 10px;
           }
 
+          .generation-mode {
+            grid-template-columns: 1fr;
+          }
+
           .style-grid {
             grid-template-columns: repeat(2, 1fr);
           }
@@ -1448,7 +1641,103 @@ export default function BannerStudio() {
             display: none;
           }
 
-          .option-grid {
+          .generation-mode {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .generation-mode button {
+          min-height: 82px;
+          padding: 13px;
+          border: 1px solid #e2e5ee;
+          border-radius: 13px;
+          background: #ffffff;
+          color: #707789;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          text-align: left;
+          transition: 0.2s ease;
+        }
+
+        .generation-mode button.selected {
+          border-color: #7d5cf7;
+          background: #f7f4ff;
+          color: #6845df;
+          box-shadow: inset 0 0 0 1px rgba(125, 92, 247, 0.1);
+        }
+
+        .generation-mode button strong,
+        .generation-mode button small {
+          display: block;
+        }
+
+        .generation-mode button strong {
+          color: #252a38;
+          font-size: 12px;
+        }
+
+        .generation-mode button small {
+          margin-top: 4px;
+          color: #9096a5;
+          font-size: 10px;
+        }
+
+        .upload-area {
+          margin-top: 12px;
+        }
+
+        .text-toggle {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid #e4e7ef;
+          border-radius: 11px;
+          background: #fafbfe;
+        }
+
+        .text-toggle input {
+          width: 17px;
+          min-height: 17px;
+          margin: 2px 0 0;
+          accent-color: #7350f3;
+        }
+
+        .text-toggle strong,
+        .text-toggle small {
+          display: block;
+        }
+
+        .text-toggle strong {
+          color: #2f3442;
+          font-size: 12px;
+        }
+
+        .text-toggle small {
+          margin-top: 4px;
+          color: #8d93a2;
+          font-size: 10px;
+          line-height: 1.4;
+        }
+
+        .text-fields {
+          margin-top: 12px;
+        }
+
+        .success-box {
+          margin: -8px 0 14px;
+          border: 1px solid #a9e6cf;
+          background: #f0fff8;
+          color: #16764e;
+          border-radius: 9px;
+          padding: 10px;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .option-grid {
             grid-template-columns: 1fr;
           }
 

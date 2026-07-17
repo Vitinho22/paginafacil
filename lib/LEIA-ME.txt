@@ -1,0 +1,8 @@
+PÁGINAFÁCIL — TEMPLATES REAIS
+
+1. Copie lib/templates.ts para o seu projeto.
+2. Copie a pasta public/templates para a pasta public do projeto.
+3. Use o TemplatePreviewCard-real.tsx enviado anteriormente.
+4. Reinicie o servidor com npm run dev.
+
+As prévias são arquivos SVG reais e leves, sem depender de links externos.
